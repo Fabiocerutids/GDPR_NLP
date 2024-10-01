@@ -1,0 +1,4 @@
+access_token.py
+__pycache__/*
+data/vectorstore/*
+dev/*

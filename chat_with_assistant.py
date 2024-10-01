@@ -1,14 +1,17 @@
 import json
 from access_token import *
 from sentence_transformers import SentenceTransformer
-import random 
+import time
+import os 
 
 from langchain_core.documents import Document
 from langchain.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings, HuggingFaceEndpoint
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain.chains import create_retrieval_chain
+from langchain.chains.llm import LLMChain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
@@ -38,8 +41,14 @@ class GDPR_AI_Assistant():
         self.vectorstore = FAISS.from_documents(
             self.original_text,
             embedding=embedding_model)
+        self.vectorstore.save_local("data/vectorstore")
         
-    def _prepare_pipeline(self, system_prompt):
+    def _load_vector_store(self):
+        embedding_model = HuggingFaceEmbeddings(model_name=self.embedding_model,
+                                                encode_kwargs={"normalize_embeddings": True})
+        self.vectorstore = FAISS.load_local("data/vectorstore", embedding_model, allow_dangerous_deserialization=True)
+        
+    def _prepare_pipeline(self, system_prompt, temperature, max_new_tokens):
         self.system_prompt = (f"""
                          {system_prompt}
                          """
@@ -57,10 +66,10 @@ class GDPR_AI_Assistant():
         repo_id=self.generator_model,
         task="text-generation",
         do_sample=True,
-        temperature=0.1,
+        temperature=temperature,
         repetition_penalty=1.1,
         return_full_text=False,
-        max_new_tokens=500,
+        max_new_tokens=max_new_tokens,
         huggingfacehub_api_token=my_huggingface_token
         )
         self.retriever = self.vectorstore.as_retriever()
@@ -74,31 +83,47 @@ class GDPR_AI_Assistant():
             output_messages_key="answer"
             )
         
+#    def _summarize_history(self):
+#        stored_messages = self.store[self.session_id]
+#        prompt_template = """Write a concise summary of the following:
+#                            "{text}"
+#                            CONCISE SUMMARY:"""
+#        prompt = PromptTemplate.from_template(prompt_template)
+#        llm = HuggingFaceEndpoint(
+#            repo_id=self.generator_model,
+#            task="text-generation",
+#            do_sample=True,
+#            temperature=0.1,
+#            repetition_penalty=1.1,
+#            return_full_text=False,
+#            max_new_tokens=400,
+#            huggingfacehub_api_token=my_huggingface_token
+#            )
+#        llm_chain = LLMChain(llm=llm, prompt=prompt)
+#        stuff_chain = StuffDocumentsChain(llm_chain=llm_chain, document_variable_name="text")
+#        return stuff_chain.run(stored_messages)
+        
     def _get_session_history(self, session_id):
         if session_id not in self.store:
-            self.store[session_id] = ChatMessageHistory()
+            self.store[session_id] = ChatMessageHistory()       
         return self.store[session_id]
             
     def chat_with_llm(self, question, session_new):
         if session_new:
-            self.session_id = random.random()
-        return print(self.conversational_rag_chain.invoke({"input": question}, config={"configurable": {"session_id": self.session_id}})["answer"])
+            self.session_id = time.strftime("%b %d %Y %H:%M:%S", time.localtime())
+        print(self.store)
+        return self.conversational_rag_chain.invoke({"input": question}, config={"configurable": {"session_id": self.session_id}})["answer"]
     
     def create_session(self):
         self._prepare_data()
         print('Data Prepared')
-        self._create_vector_store()
+        if 'vectorstore' in os.listdir('data'):
+            self._load_vector_store()
+        else:
+            self._create_vector_store()
         print('Vector Store Created')
     
-    def set_system_prompt(self, prompt):
-        self._prepare_pipeline(prompt)
+    def set_system_parameters(self, prompt, temperature=0.1, max_new_tokens=500):
+        self._prepare_pipeline(prompt, temperature, max_new_tokens)
         print('Pipeline Built')
-        
-my_assistant = GDPR_AI_Assistant()
-my_assistant.create_session()
-my_assistant.set_system_prompt("""
-                               Using the information contained in the context, give a comprehensive answer to the question.
-                               Respond only to the question asked, response should be concise and relevant to the question.
-                               If the answer cannot be deduced from the context, do not give an answer.
-                               """)
-my_assistant.chat_with_llm('How can I transfer data between countries?', True)
+        self.store = {}

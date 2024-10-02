@@ -111,7 +111,6 @@ class GDPR_AI_Assistant():
     def chat_with_llm(self, question, session_new):
         if session_new:
             self.session_id = time.strftime("%b %d %Y %H:%M:%S", time.localtime())
-        print(self.store)
         return self.conversational_rag_chain.invoke({"input": question}, config={"configurable": {"session_id": self.session_id}})["answer"]
     
     def create_session(self):
@@ -126,4 +125,3 @@ class GDPR_AI_Assistant():
     def set_system_parameters(self, prompt, temperature=0.1, max_new_tokens=500):
         self._prepare_pipeline(prompt, temperature, max_new_tokens)
         print('Pipeline Built')
-        self.store = {}

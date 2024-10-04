@@ -41,6 +41,8 @@ class GDPR_AI_Assistant():
         self.vectorstore = FAISS.from_documents(
             self.original_text,
             embedding=embedding_model)
+        if 'vectorstore' not in os.listdir('data'):
+            os.makedirs("data/vectorstore")
         self.vectorstore.save_local("data/vectorstore")
         
     def _load_vector_store(self):
@@ -48,7 +50,7 @@ class GDPR_AI_Assistant():
                                                 encode_kwargs={"normalize_embeddings": True})
         self.vectorstore = FAISS.load_local("data/vectorstore", embedding_model, allow_dangerous_deserialization=True)
         
-    def _prepare_pipeline(self, system_prompt, temperature, max_new_tokens):
+    def _prepare_pipeline(self, system_prompt, temperature, max_length):
         self.system_prompt = (f"""
                          {system_prompt}
                          """
@@ -69,7 +71,7 @@ class GDPR_AI_Assistant():
         temperature=temperature,
         repetition_penalty=1.1,
         return_full_text=False,
-        max_new_tokens=max_new_tokens,
+        max_length=max_length,
         huggingfacehub_api_token=my_huggingface_token
         )
         self.retriever = self.vectorstore.as_retriever()
@@ -96,7 +98,7 @@ class GDPR_AI_Assistant():
 #            temperature=0.1,
 #            repetition_penalty=1.1,
 #            return_full_text=False,
-#            max_new_tokens=400,
+#            max_length=400,
 #            huggingfacehub_api_token=my_huggingface_token
 #            )
 #        llm_chain = LLMChain(llm=llm, prompt=prompt)
@@ -116,12 +118,12 @@ class GDPR_AI_Assistant():
     def create_session(self):
         self._prepare_data()
         print('Data Prepared')
-        if 'vectorstore' in os.listdir('data'):
+        if 'vectorstore' in os.listdir('data') and len(os.listdir('data/vectorstore'))>0:
             self._load_vector_store()
         else:
             self._create_vector_store()
         print('Vector Store Created')
     
-    def set_system_parameters(self, prompt, temperature=0.1, max_new_tokens=500):
-        self._prepare_pipeline(prompt, temperature, max_new_tokens)
+    def set_system_parameters(self, prompt, temperature=0.1, max_length=512):
+        self._prepare_pipeline(prompt, temperature, max_length)
         print('Pipeline Built')

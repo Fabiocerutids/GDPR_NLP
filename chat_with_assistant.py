@@ -31,8 +31,9 @@ class GDPR_AI_Assistant():
         
         self.original_text = []
         for chapter in gdpr.keys():
-            for article in gdpr[chapter].keys():
-                self.original_text.append(Document(page_content=gdpr[chapter][article], id=chapter+'-'+article, metadata={'Chapter':chapter, 'Article':article}))
+            if chapter != 'Legislative acts':
+                for article in gdpr[chapter].keys():
+                    self.original_text.append(Document(page_content=gdpr[chapter][article], id=chapter+'-'+article, metadata={'Chapter':chapter, 'Article':article}))
     
     def _create_vector_store(self):
         embedding_model = HuggingFaceEmbeddings(model_name=self.embedding_model,
@@ -74,7 +75,7 @@ class GDPR_AI_Assistant():
         max_length=max_length,
         huggingfacehub_api_token=my_huggingface_token
         )
-        self.retriever = self.vectorstore.as_retriever()
+        self.retriever = self.vectorstore.as_retriever(search_kwargs={"k": 5})
         self.question_answer_chain = create_stuff_documents_chain(self.llm, self.prompt)
         self.rag_chain = create_retrieval_chain(self.retriever, self.question_answer_chain)
         self.conversational_rag_chain = RunnableWithMessageHistory(

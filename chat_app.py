@@ -11,7 +11,7 @@ initial_max_length= 500
 @st.cache_resource
 def instantiate_assistant():
     #Available Models: https://api-inference.huggingface.co/framework/text-generation-inference
-    my_assistant = GDPR_AI_Assistant(generator_model="openai-community/gpt2") #mistralai/Mistral-7B-Instruct-v0.3 
+    my_assistant = GDPR_AI_Assistant(generator_model="meta-llama/Meta-Llama-3-8B-Instruct") #mistralai/Mistral-7B-Instruct-v0.3 
     my_assistant.create_session()
     my_assistant.set_system_parameters(prompt=initial_system_prompt, temperature=initial_temperature, max_length=initial_max_length)
     return my_assistant

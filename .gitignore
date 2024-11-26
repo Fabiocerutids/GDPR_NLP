@@ -1,4 +1,6 @@
 access_token.py
-__pycache__/*
-data/vectorstore/*
-dev/*
+__pycache__/
+data/vectorstore/
+dev/
+gdpr_env/
+utils/

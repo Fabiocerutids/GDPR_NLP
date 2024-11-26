@@ -17,7 +17,7 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 
 class GDPR_AI_Assistant():
     def __init__(self, 
-                 data_path="data/chunked_data/gdpr_clean.json",
+                 data_path="../../data/chunked_data/gdpr_clean.json",
                  embedding_model="intfloat/multilingual-e5-large-instruct",
                  generator_model="meta-llama/Meta-Llama-3-8B-Instruct"):
         self.data_path = data_path
@@ -49,7 +49,7 @@ class GDPR_AI_Assistant():
     def _load_vector_store(self):
         embedding_model = HuggingFaceEmbeddings(model_name=self.embedding_model,
                                                 encode_kwargs={"normalize_embeddings": True})
-        self.vectorstore = FAISS.load_local("data/vectorstore", embedding_model, allow_dangerous_deserialization=True)
+        self.vectorstore = FAISS.load_local("../../data/vectorstore", embedding_model, allow_dangerous_deserialization=True)
         
     def _prepare_pipeline(self, system_prompt, temperature, max_length):
         self.system_prompt = (f"""
@@ -119,7 +119,7 @@ class GDPR_AI_Assistant():
     def create_session(self):
         self._prepare_data()
         print('Data Prepared')
-        if 'vectorstore' in os.listdir('data') and len(os.listdir('data/vectorstore'))>0:
+        if 'vectorstore' in os.listdir('../../data') and len(os.listdir('../../data/vectorstore'))>0:
             self._load_vector_store()
         else:
             self._create_vector_store()
